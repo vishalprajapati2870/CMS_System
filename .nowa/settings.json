@@ -1,0 +1,11 @@
+{
+    "version": "3.3.1",
+    "app": {
+        "name": "cms",
+        "package_name": "com.example.cms"
+    },
+    "main": {},
+    "experimental": {
+        "load_packages": true
+    }
+}
