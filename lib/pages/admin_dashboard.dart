@@ -213,14 +213,14 @@ class AdminDashboard extends StatelessWidget {
                   ),
                 ),
               Expanded(
-                child: Padding(
+                  child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: GridView.count(
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                     childAspectRatio: 0.85,
-                    children: [
+                      children: [
                       _buildDashboardCard(
                         context,
                         icon: Icons.business,
@@ -274,8 +274,8 @@ class AdminDashboard extends StatelessWidget {
                         onTap: () {
                           // TODO: Navigate to Reports page
                         },
-                      ),
-                    ],
+                                        ),
+                                      ],
                   ),
                 ),
               ),

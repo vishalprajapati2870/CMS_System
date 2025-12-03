@@ -71,47 +71,47 @@ class _LoginScreenState extends State<LoginScreen> {
       // Both admin and super admin now land on the same main dashboard.
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const AdminDashboard()),
-      );
-    } else {
-      if (action == 'rejected') {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Access Rejected'),
-            content: Text(result['message']),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AdminDashboard(),
-                    ),
-                  );
-                },
-                child: const Text('Open Dashboard'),
-              ),
-            ],
-          ),
+          MaterialPageRoute(builder: (context) => const AdminDashboard()),
         );
       } else {
-        if (action == 'pending') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+        if (action == 'rejected') {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Access Rejected'),
               content: Text(result['message']),
-              backgroundColor: Colors.orange,
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminDashboard(),
+                      ),
+                    );
+                  },
+                  child: const Text('Open Dashboard'),
+                ),
+              ],
             ),
           );
         } else {
-          if (action == 'register') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AdminRegistrationScreen(phone: phone),
+          if (action == 'pending') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message']),
+                backgroundColor: Colors.orange,
               ),
             );
+          } else {
+            if (action == 'register') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AdminRegistrationScreen(phone: phone),
+                ),
+              );
           }
         }
       }
