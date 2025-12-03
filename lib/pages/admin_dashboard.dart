@@ -5,7 +5,6 @@ import 'package:cms/globals/auth_service.dart';
 import 'package:cms/pages/login_screen.dart';
 import 'package:cms/admin_status.dart';
 import 'package:cms/user_role.dart';
-import 'package:cms/components/admin_sidebar.dart';
 
 @NowaGenerated()
 class AdminDashboard extends StatelessWidget {
@@ -72,8 +71,6 @@ class AdminDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scaffoldKey = GlobalKey<ScaffoldState>();
-
     return Consumer<AuthService>(
       builder: (context, authService, child) {
         final currentUser = authService.currentUser;
@@ -91,61 +88,15 @@ class AdminDashboard extends StatelessWidget {
         }
 
         final isRejected = currentUser.status == AdminStatus.rejected;
-        final isSuperAdmin = currentUser.role == UserRole.superAdmin;
-
-        Future<void> handleRemoveAdmin(
-          String phone,
-          String name,
-          AuthService service,
-        ) async {
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Remove Admin'),
-              content: Text(
-                'Are you sure you want to remove $name? They will need to request access again.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: const Text('Remove'),
-                ),
-              ],
-            ),
-          );
-          if (confirmed == true) {
-            await service.removeAdmin(phone);
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Admin removed successfully'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          }
-        }
 
         return Scaffold(
-          key: scaffoldKey,
           backgroundColor: const Color(0xffeaf1fb),
           appBar: AppBar(
             backgroundColor: const Color(0xff003a78),
             foregroundColor: Colors.white,
-            title: const Text('Admin Dashboard'),
-            leading: isSuperAdmin
-                ? IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () {
-                      scaffoldKey.currentState?.openDrawer();
-                    },
-                  )
-                : null,
+            title: Text('Admin Dashboard - ${currentUser.name}'),
+            // NO drawer icon for regular admins
+            automaticallyImplyLeading: false,
             actions: [
               IconButton(
                 icon: const Icon(Icons.logout),
@@ -183,12 +134,7 @@ class AdminDashboard extends StatelessWidget {
               ),
             ],
           ),
-          drawer: isSuperAdmin
-              ? AdminSidebar(
-                  onRemove: (phone, name, service) =>
-                      handleRemoveAdmin(phone, name, service),
-                )
-              : null,
+          // NO drawer for regular admins
           body: Column(
             children: [
               if (isRejected)
@@ -213,14 +159,14 @@ class AdminDashboard extends StatelessWidget {
                   ),
                 ),
               Expanded(
-                  child: Padding(
+                child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: GridView.count(
                     crossAxisCount: 2,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                     childAspectRatio: 0.85,
-                      children: [
+                    children: [
                       _buildDashboardCard(
                         context,
                         icon: Icons.business,
@@ -228,6 +174,9 @@ class AdminDashboard extends StatelessWidget {
                         subtitle: 'Manage all project sites',
                         onTap: () {
                           // TODO: Navigate to Sites page
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Sites feature coming soon')),
+                          );
                         },
                       ),
                       _buildDashboardCard(
@@ -237,6 +186,9 @@ class AdminDashboard extends StatelessWidget {
                         subtitle: 'View and edit labour profiles',
                         onTap: () {
                           // TODO: Navigate to Labours page
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Labours feature coming soon')),
+                          );
                         },
                       ),
                       _buildDashboardCard(
@@ -246,6 +198,9 @@ class AdminDashboard extends StatelessWidget {
                         subtitle: 'Track and log attendance',
                         onTap: () {
                           // TODO: Navigate to Daily Attendance page
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Attendance feature coming soon')),
+                          );
                         },
                       ),
                       _buildDashboardCard(
@@ -255,6 +210,9 @@ class AdminDashboard extends StatelessWidget {
                         subtitle: 'Process and manage salaries',
                         onTap: () {
                           // TODO: Navigate to Labour Salary page
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Salary feature coming soon')),
+                          );
                         },
                       ),
                       _buildDashboardCard(
@@ -264,18 +222,24 @@ class AdminDashboard extends StatelessWidget {
                         subtitle: 'Record extra site expenses',
                         onTap: () {
                           // TODO: Navigate to Site-wise Expense page
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Expense feature coming soon')),
+                          );
                         },
                       ),
                       _buildDashboardCard(
                         context,
                         icon: Icons.bar_chart,
-                        title: 'Admin Paid Money to Labour Page',
+                        title: 'Admin Paid Money',
                         subtitle: 'Generate and view reports',
                         onTap: () {
                           // TODO: Navigate to Reports page
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Reports feature coming soon')),
+                          );
                         },
-                                        ),
-                                      ],
+                      ),
+                    ],
                   ),
                 ),
               ),

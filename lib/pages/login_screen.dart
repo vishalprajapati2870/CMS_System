@@ -4,6 +4,7 @@ import 'package:cms/globals/auth_service.dart';
 import 'package:cms/pages/super_admin_dashboard.dart';
 import 'package:cms/pages/admin_dashboard.dart';
 import 'package:cms/pages/admin_registration_screen.dart';
+import 'package:cms/user_role.dart';
 
 @NowaGenerated()
 class LoginScreen extends StatefulWidget {
@@ -67,54 +68,60 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = false;
     });
     final action = result['action'];
-    if (action == 'super_admin_dashboard' || action == 'admin_dashboard') {
-      // Both admin and super admin now land on the same main dashboard.
+    
+    // Navigate based on user role
+    if (action == 'super_admin_dashboard') {
+      // Super Admin goes to SuperAdminDashboard with drawer
       Navigator.pushReplacement(
         context,
-          MaterialPageRoute(builder: (context) => const AdminDashboard()),
-        );
-      } else {
-        if (action == 'rejected') {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Access Rejected'),
-              content: Text(result['message']),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminDashboard(),
-                      ),
-                    );
-                  },
-                  child: const Text('Open Dashboard'),
-                ),
-              ],
+        MaterialPageRoute(builder: (context) => const SuperAdminDashboard()),
+      );
+    } else if (action == 'admin_dashboard') {
+      // Regular Admin goes to AdminDashboard without drawer
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AdminDashboard()),
+      );
+    } else if (action == 'rejected') {
+      // Rejected admin can still see dashboard but with limited access
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Access Rejected'),
+          content: Text(result['message']),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminDashboard(),
+                  ),
+                );
+              },
+              child: const Text('Open Dashboard'),
             ),
-          );
-        } else {
-          if (action == 'pending') {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result['message']),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          } else {
-            if (action == 'register') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AdminRegistrationScreen(phone: phone),
-                ),
-              );
-          }
-        }
-      }
+          ],
+        ),
+      );
+    } else if (action == 'pending') {
+      // Pending admin - show message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message']),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } else if (action == 'register') {
+      // New user - navigate to registration
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AdminRegistrationScreen(phone: phone),
+        ),
+      );
     }
   }
 
