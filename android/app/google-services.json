@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "945939646206",
+    "project_id": "cms-system-c6b47",
+    "storage_bucket": "cms-system-c6b47.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945939646206:android:d6a025d07ef4b39ab047af",
+        "android_client_info": {
+          "package_name": "com.flutter.app.cms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYx7nAwdGXt7lzdJSb5ptKJGgtaAeTDVw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
