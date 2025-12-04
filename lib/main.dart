@@ -5,12 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cms/globals/auth_service.dart';
 import 'package:cms/globals/app_state.dart';
+import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 @NowaGenerated()
 late final SharedPreferences sharedPrefs;
 
 @NowaGenerated()
 main() async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+ 
   WidgetsFlutterBinding.ensureInitialized();
   sharedPrefs = await SharedPreferences.getInstance();
 

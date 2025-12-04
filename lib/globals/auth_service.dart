@@ -3,200 +3,257 @@ import 'package:cms/models/user_model.dart';
 import 'package:nowa_runtime/nowa_runtime.dart';
 import 'package:cms/user_role.dart';
 import 'package:cms/admin_status.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
 @NowaGenerated()
 class AuthService extends ChangeNotifier {
   AuthService() {
-    _initializeHardcodedUsers();
-    _loadSession();
+    _initializeService();
   }
 
   factory AuthService.of(BuildContext context) {
     return Provider.of<AuthService>(context, listen: false);
   }
 
-  List<UserModel> _users = [];
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   UserModel? _currentUser;
+  List<UserModel> _allUsers = [];
+  bool _isLoading = false;
 
-  List<UserModel> get users {
-    return _users;
-  }
+  UserModel? get currentUser => _currentUser;
+  bool get isLoading => _isLoading;
+  bool get isLoggedIn => _currentUser != null;
 
-  UserModel? get currentUser {
-    return _currentUser;
-  }
+  List<UserModel> get allAdmins =>
+      _allUsers.where((u) => u.role == UserRole.admin).toList();
 
-  bool get isLoggedIn {
-    return _currentUser != null;
-  }
+  List<UserModel> get approvedAdmins => _allUsers
+      .where((u) => u.role == UserRole.admin && u.status == AdminStatus.approved)
+      .toList();
 
-  List<UserModel> get approvedAdmins {
-    return _users
-        .where(
-          (u) => u.role == UserRole.admin && u.status == AdminStatus.approved,
-        )
-        .toList();
-  }
+  List<UserModel> get pendingAdmins => _allUsers
+      .where((u) => u.role == UserRole.admin && u.status == AdminStatus.pending)
+      .toList();
 
-  List<UserModel> get pendingAdmins {
-    return _users
-        .where(
-          (u) => u.role == UserRole.admin && u.status == AdminStatus.pending,
-        )
-        .toList();
-  }
+  List<UserModel> get rejectedAdmins => _allUsers
+      .where((u) => u.role == UserRole.admin && u.status == AdminStatus.rejected)
+      .toList();
 
-  List<UserModel> get rejectedAdmins {
-    return _users
-        .where(
-          (u) => u.role == UserRole.admin && u.status == AdminStatus.rejected,
-        )
-        .toList();
-  }
+  Future<void> _initializeService() async {
+    _isLoading = true;
+    notifyListeners();
 
-  List<UserModel> get allAdmins {
-    return _users.where((u) => u.role == UserRole.admin).toList();
-  }
-
-  void _initializeHardcodedUsers() {
-    _users = [
-      UserModel(
-        phone: '8128262414',
-        name: 'Naresh',
-        role: UserRole.superAdmin,
-        status: AdminStatus.approved,
-        createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      ),
-      UserModel(
-        phone: '8128262415',
-        name: 'Hashmukh',
-        role: UserRole.admin,
-        status: AdminStatus.approved,
-        createdAt: DateTime.now().subtract(const Duration(days: 15)),
-      ),
-      UserModel(
-        phone: '8128261416',
-        name: 'Jash',
-        role: UserRole.admin,
-        status: AdminStatus.rejected,
-        createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      ),
-    ];
-  }
-
-  Future<void> _loadSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final phone = prefs.getString('current_user_phone');
-    if (phone != null) {
-      try {
-        _currentUser = _users.firstWhere((user) => user.phone == phone);
+    // Listen to auth state changes
+    _auth.authStateChanges().listen((User? user) async {
+      if (user != null) {
+        await _loadCurrentUser(user.phoneNumber ?? '');
+      } else {
+        _currentUser = null;
         notifyListeners();
-      } catch (e) {
-        await logout();
       }
-    }
-  }
+    });
 
-  Future<void> _saveSession(String phone) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('current_user_phone', phone);
-  }
+    // Listen to all users changes (for Super Admin)
+    _firestore.collection('users').snapshots().listen((snapshot) {
+      _allUsers = snapshot.docs
+          .map((doc) => UserModel.fromJson({...doc.data(), 'phone': doc.id}))
+          .toList();
+      notifyListeners();
+    });
 
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('current_user_phone');
-    _currentUser = null;
+    _isLoading = false;
     notifyListeners();
   }
 
-  UserModel? findUserByPhone(String phone) {
+  Future<void> _loadCurrentUser(String phone) async {
     try {
-      return _users.firstWhere((user) => user.phone == phone);
+      final doc = await _firestore.collection('users').doc(phone).get();
+      if (doc.exists) {
+        _currentUser = UserModel.fromJson({...doc.data()!, 'phone': phone});
+        notifyListeners();
+      }
     } catch (e) {
+      debugPrint('Error loading current user: $e');
+    }
+  }
+
+  Future<UserModel?> _getUserFromFirestore(String phone) async {
+    try {
+      final doc = await _firestore.collection('users').doc(phone).get();
+      if (doc.exists) {
+        return UserModel.fromJson({...doc.data()!, 'phone': phone});
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting user: $e');
       return null;
     }
   }
 
   Future<Map<String, dynamic>> login(String phone) async {
-    final user = findUserByPhone(phone);
-    if (user == null) {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Check if user exists in Firestore
+      final user = await _getUserFromFirestore(phone);
+
+      if (user == null) {
+        _isLoading = false;
+        notifyListeners();
+        return {
+          'success': false,
+          'action': 'register',
+          'message': 'User not found. Please register.',
+        };
+      }
+
+      // Sign in anonymously with Firebase Auth (since we're not using OTP)
+      // We'll use the phone as identifier
+      await _auth.signInAnonymously();
+      
+      // Set current user
+      _currentUser = user;
+      notifyListeners();
+
+      _isLoading = false;
+      notifyListeners();
+
+      // Route based on role and status
+      if (user.role == UserRole.superAdmin) {
+        return {
+          'success': true,
+          'action': 'super_admin_dashboard',
+          'user': user,
+        };
+      }
+
+      if (user.status == AdminStatus.approved) {
+        return {
+          'success': true,
+          'action': 'admin_dashboard',
+          'user': user,
+        };
+      }
+
+      if (user.status == AdminStatus.rejected) {
+        return {
+          'success': false,
+          'action': 'rejected',
+          'message': 'Your access request has been rejected by Super Admin.',
+          'user': user,
+        };
+      }
+
+      // Pending status
       return {
         'success': false,
-        'action': 'register',
-        'message': 'User not found',
+        'action': 'pending',
+        'message': 'Your request is pending approval from Super Admin.',
       };
-    }
-    if (user?.role == UserRole.superAdmin) {
-      _currentUser = user;
-      await _saveSession(phone);
+    } catch (e) {
+      _isLoading = false;
       notifyListeners();
-      return {'success': true, 'action': 'super_admin_dashboard', 'user': user};
-    }
-    if (user?.status == AdminStatus.approved) {
-      _currentUser = user;
-      await _saveSession(phone);
-      notifyListeners();
-      return {'success': true, 'action': 'admin_dashboard', 'user': user};
-    }
-    if (user?.status == AdminStatus.rejected) {
-      _currentUser = user;
-      await _saveSession(phone);
-      notifyListeners();
+      debugPrint('Login error: $e');
       return {
         'success': false,
-        'action': 'rejected',
-        'message': 'Your access request has been rejected by Super Admin.',
-        'user': user,
+        'action': 'error',
+        'message': 'Login failed: $e',
       };
     }
-    return {
-      'success': false,
-      'action': 'pending',
-      'message': 'Your request is pending approval from Super Admin.',
-    };
   }
 
   Future<bool> registerAdmin(String phone, String name) async {
-    final existingUser = findUserByPhone(phone);
-    if (existingUser != null) {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Check if user already exists
+      final existingUser = await _getUserFromFirestore(phone);
+      if (existingUser != null) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Create new admin in Firestore
+      final newAdmin = UserModel(
+        phone: phone,
+        name: name,
+        role: UserRole.admin,
+        status: AdminStatus.pending,
+        createdAt: DateTime.now(),
+      );
+
+      await _firestore.collection('users').doc(phone).set({
+        'name': name,
+        'role': UserRole.admin.toString(),
+        'status': AdminStatus.pending.toString(),
+        'createdAt': newAdmin.createdAt.toIso8601String(),
+      });
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      debugPrint('Registration error: $e');
       return false;
     }
-    final newAdmin = UserModel(
-      phone: phone,
-      name: name,
-      role: UserRole.admin,
-      status: AdminStatus.pending,
-      createdAt: DateTime.now(),
-    );
-    _users.add(newAdmin);
-    notifyListeners();
-    return true;
   }
 
-  void approveAdmin(String phone) {
-    final index = _users.indexWhere((user) => user.phone == phone);
-    if (index != -1) {
-      _users[index] = _users[index].copyWith(status: AdminStatus.approved);
+  Future<void> approveAdmin(String phone) async {
+    try {
+      await _firestore.collection('users').doc(phone).update({
+        'status': AdminStatus.approved.toString(),
+      });
       notifyListeners();
+    } catch (e) {
+      debugPrint('Approve error: $e');
+      rethrow;
     }
   }
 
-  void rejectAdmin(String phone) {
-    final index = _users.indexWhere((user) => user.phone == phone);
-    if (index != -1) {
-      _users[index] = _users[index].copyWith(status: AdminStatus.rejected);
+  Future<void> rejectAdmin(String phone) async {
+    try {
+      await _firestore.collection('users').doc(phone).update({
+        'status': AdminStatus.rejected.toString(),
+      });
       notifyListeners();
+    } catch (e) {
+      debugPrint('Reject error: $e');
+      rethrow;
     }
   }
 
   Future<void> removeAdmin(String phone) async {
-    _users.removeWhere((user) => user.phone == phone);
-    if (_currentUser?.phone == phone) {
-      await logout();
+    try {
+      await _firestore.collection('users').doc(phone).delete();
+      
+      // If removing current user, logout
+      if (_currentUser?.phone == phone) {
+        await logout();
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Remove error: $e');
+      rethrow;
     }
-    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    try {
+      await _auth.signOut();
+      _currentUser = null;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Logout error: $e');
+    }
   }
 }
