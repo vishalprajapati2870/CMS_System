@@ -37,7 +37,6 @@ class SiteService extends ChangeNotifier {
   Future<bool> createSite({
     required String siteName,
     required String createdBy,
-    required String superAdminName,
   }) async {
     try {
       _isLoading = true;
@@ -48,7 +47,6 @@ class SiteService extends ChangeNotifier {
         id: docRef.id,
         siteName: siteName,
         createdBy: createdBy,
-        superAdminName: superAdminName,
         createdAt: DateTime.now(),
       );
 
