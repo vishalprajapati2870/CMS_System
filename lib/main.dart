@@ -1,3 +1,4 @@
+import 'package:cms/globals/site_service.dart';
 import 'package:cms/pages/Auth/login_screen.dart';
 import 'package:cms/pages/Dashboard/admin_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,18 +35,20 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<AuthService>(
       create: (context) => AuthService(),
-      child: ChangeNotifierProvider<AppState>(
-        create: (context) => AppState(),
-        builder: (context, child) => MaterialApp(
-          theme: AppState.of(context).theme,
-          home: const SplashScreen(),
-          routes: {
-            'HomePage': (context) => const LoginScreen(),
-            'AdminDashboard': (context) => const AdminDashboard(),
-          },
+      child: ChangeNotifierProvider<SiteService>(
+        create: (context) => SiteService(),
+        child: ChangeNotifierProvider<AppState>(
+          create: (context) => AppState(),
+          builder: (context, child) => MaterialApp(
+            theme: AppState.of(context).theme,
+            home: const SplashScreen(),
+            routes: {
+              'HomePage': (context) => const LoginScreen(),
+              'AdminDashboard': (context) => const AdminDashboard(),
+            },
+          ),
         ),
       ),
     );
   }
 }
-

@@ -1,3 +1,4 @@
+import 'package:cms/pages/Dashboard/Sites/site_records_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:nowa_runtime/nowa_runtime.dart';
 import 'package:provider/provider.dart';
@@ -484,9 +485,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         title: 'Sites',
                         subtitle: 'Manage all project sites',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Sites feature coming soon')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SiteRecordsScreen(),
+                            ),
                           );
                         },
                       ),
