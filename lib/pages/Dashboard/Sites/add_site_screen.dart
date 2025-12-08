@@ -92,7 +92,6 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     final success = await siteService.createSite(
       siteName: siteName,
       createdBy: currentUser.name,
-      superAdminName: currentUser.name,
     );
 
     if (!mounted) return;

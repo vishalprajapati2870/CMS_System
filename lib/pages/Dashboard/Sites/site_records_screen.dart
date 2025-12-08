@@ -285,15 +285,6 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Super Admin: ${site.superAdminName}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: const Color(0xff607286),
-                                    ),
-                              ),
-                              Text(
                                 'Created By: ${site.createdBy}',
                                 style: Theme.of(context)
                                     .textTheme
@@ -315,10 +306,6 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
                               ),
                             ],
                           ),
-                        ),
-                        const Icon(
-                          Icons.chevron_right,
-                          color: Color(0xff607286),
                         ),
                       ],
                     ),
