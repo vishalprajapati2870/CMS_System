@@ -1,4 +1,5 @@
 import 'package:cms/pages/Dashboard/Sites/site_records_screen.dart';
+import 'package:cms/pages/Dashboard/Labours/labor_records_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:nowa_runtime/nowa_runtime.dart';
 import 'package:provider/provider.dart';
@@ -499,9 +500,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         title: 'Labours',
                         subtitle: 'View and edit labour profiles',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Labours feature coming soon')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LaborRecordsScreen(),
+                            ),
                           );
                         },
                       ),
