@@ -29,6 +29,13 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
     });
   }
 
+  void _enterSelectionMode(String laborId) {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedLaborIds.add(laborId);
+    });
+  }
+
   void _clearSelection() {
     setState(() {
       _selectedLaborIds.clear();
@@ -160,7 +167,9 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
             }
           },
         ),
-        title: const Text('Labors'),
+        title: _isSelectionMode
+            ? Text('${_selectedLaborIds.length} Selected')
+            : const Text('Labors'),
         actions: [
           if (_isSelectionMode)
             IconButton(
@@ -230,36 +239,40 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
                   ],
                 ),
                 child: InkWell(
-                  onTap: () => _toggleSelection(labor.id),
+                  onTap: _isSelectionMode
+                      ? () => _toggleSelection(labor.id)
+                      : null,
+                  onLongPress: () => _enterSelectionMode(labor.id),
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
+                        if (_isSelectionMode)
+                          Container(
+                            width: 24,
+                            height: 24,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xff093e86)
+                                    : const Color(0xffc4c4c4),
+                                width: 2,
+                              ),
                               color: isSelected
                                   ? const Color(0xff093e86)
-                                  : const Color(0xffc4c4c4),
-                              width: 2,
+                                  : Colors.transparent,
                             ),
-                            color: isSelected
-                                ? const Color(0xff093e86)
-                                : Colors.transparent,
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  )
+                                : null,
                           ),
-                          child: isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 16,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

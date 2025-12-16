@@ -29,6 +29,13 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
     });
   }
 
+  void _enterSelectionMode(String siteId) {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedSiteIds.add(siteId);
+    });
+  }
+
   void _clearSelection() {
     setState(() {
       _selectedSiteIds.clear();
@@ -155,7 +162,9 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
             }
           },
         ),
-        title: const Text('Site Records'),
+        title: _isSelectionMode
+            ? Text('${_selectedSiteIds.length} Selected')
+            : const Text('Site Records'),
         actions: [
           if (_isSelectionMode)
             IconButton(
@@ -225,36 +234,40 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
                   ],
                 ),
                 child: InkWell(
-                  onTap: () => _toggleSelection(site.id),
+                  onTap: _isSelectionMode
+                      ? () => _toggleSelection(site.id)
+                      : null,
+                  onLongPress: () => _enterSelectionMode(site.id),
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
+                        if (_isSelectionMode)
+                          Container(
+                            width: 24,
+                            height: 24,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xff003a78)
+                                    : const Color(0xffc4c4c4),
+                                width: 2,
+                              ),
                               color: isSelected
                                   ? const Color(0xff003a78)
-                                  : const Color(0xffc4c4c4),
-                              width: 2,
+                                  : Colors.transparent,
                             ),
-                            color: isSelected
-                                ? const Color(0xff003a78)
-                                : Colors.transparent,
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  )
+                                : null,
                           ),
-                          child: isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 16,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
                         Container(
                           width: 48,
                           height: 48,
