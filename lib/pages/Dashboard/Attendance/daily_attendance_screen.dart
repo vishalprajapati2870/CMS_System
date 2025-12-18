@@ -18,8 +18,9 @@ class DailyAttendanceScreen extends StatefulWidget {
 
 @NowaGenerated()
 class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
-  String? _selectedSite; // Default to null (All Sites)
+  String? _selectedSite;
   DateTime _selectedDate = DateTime.now();
+  DateTime _displayMonth = DateTime.now(); // Track current month being displayed
   final ScrollController _calendarScrollController = ScrollController();
   final AttendanceService _attendanceService = AttendanceService();
 
@@ -27,21 +28,24 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToToday();
+      _scrollToSelectedDate();
     });
   }
 
-  void _scrollToToday() {
-    final today = DateTime.now();
-    final daysDifference =
-        today.difference(DateTime(today.year, today.month, 1)).inDays;
-    final scrollOffset = daysDifference * 80.0;
-    if (_calendarScrollController.hasClients) {
-      _calendarScrollController.animateTo(
-        scrollOffset,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+  void _scrollToSelectedDate() {
+    // Check if selected date is in the display month
+    if (_selectedDate.year == _displayMonth.year && 
+        _selectedDate.month == _displayMonth.month) {
+      // Calculate scroll offset based on day of month
+      final scrollOffset = (_selectedDate.day - 1) * 82.0; // 80 width + 12 margin
+      
+      if (_calendarScrollController.hasClients) {
+        _calendarScrollController.animateTo(
+          scrollOffset,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     }
   }
 
@@ -74,8 +78,37 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
+        _displayMonth = picked; // Update display month when date is picked
+      });
+      // Scroll to the selected date
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToSelectedDate();
       });
     }
+  }
+
+  void _handleDateSelected(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+      // If date is from different month, update display month
+      if (date.month != _displayMonth.month || date.year != _displayMonth.year) {
+        _displayMonth = date;
+      }
+    });
+    // Ensure the date is scrolled into view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedDate();
+    });
+  }
+
+  void _handleMonthChange(int monthOffset) {
+    setState(() {
+      _displayMonth = DateTime(
+        _displayMonth.year,
+        _displayMonth.month + monthOffset,
+      );
+      _calendarScrollController.jumpTo(0);
+    });
   }
 
   void _showErrorSnackBar(String message) {
@@ -227,12 +260,51 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
             selectedSite: _selectedSite,
             onSiteChanged: (value) => setState(() => _selectedSite = value),
           ),
-          // Calendar Strip
-          CalendarStrip(
-            selectedDate: _selectedDate,
-            onDateSelected: (date) => setState(() => _selectedDate = date),
-            scrollController: _calendarScrollController,
-            onFullCalendarPressed: _showFullCalendar,
+          // Calendar Strip with Month Display
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.only(top: 12, bottom: 8),
+            child: Column(
+              children: [
+                // Month/Year Header with Navigation
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        DateFormat('MMMM yyyy').format(_displayMonth),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xff003a78),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left, size: 20),
+                            onPressed: () => _handleMonthChange(-1),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right, size: 20),
+                            onPressed: () => _handleMonthChange(1),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Calendar Strip
+                CalendarStrip(
+                  selectedDate: _selectedDate,
+                  displayMonth: _displayMonth,
+                  onDateSelected: _handleDateSelected,
+                  scrollController: _calendarScrollController,
+                  onFullCalendarPressed: _showFullCalendar,
+                ),
+              ],
+            ),
           ),
           // Labor List Header
           Container(
@@ -269,7 +341,7 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
                     ? laborService.labors
                         .where((labor) => labor.siteName == _selectedSite)
                         .toList()
-                    : laborService.labors; // All Sites: show all labors
+                    : laborService.labors;
 
                 if (labors.isEmpty) {
                   return Center(

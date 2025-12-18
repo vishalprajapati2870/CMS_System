@@ -33,6 +33,7 @@ class _LaborCardState extends State<LaborCard> {
   // Track existing attendance
   Map<String, dynamic>? _existingAttendance;
   bool _isLoading = true;
+  bool _justUpdated = false; // Track if just updated
   final AttendanceService _attendanceService = AttendanceService();
 
   @override
@@ -46,6 +47,7 @@ class _LaborCardState extends State<LaborCard> {
     super.didUpdateWidget(oldWidget);
     // Reload when date changes
     if (oldWidget.selectedDate != widget.selectedDate) {
+      _justUpdated = false; // Reset flag when date changes
       _loadExistingAttendance();
     }
   }
@@ -103,17 +105,26 @@ class _LaborCardState extends State<LaborCard> {
       'paymentMode': _paymentMode,
       'adminName': _selectedAdminName,
     };
-    widget.onSave(data);
-    // Optionally close expansion after save
+    
+    // Mark as just updated
     setState(() {
+      _justUpdated = true;
       _isExpanded = false;
+    });
+
+    // Call the parent's onSave callback
+    widget.onSave(data);
+
+    // After saving, reload the attendance data to reflect the update
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _loadExistingAttendance();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Determine if this is an update (record exists)
-    final isUpdate = _existingAttendance != null;
+    // Determine if this is an update (record exists) or was just updated
+    final isUpdate = _existingAttendance != null || _justUpdated;
     final backgroundColor = isUpdate
         ? const Color(0xffd4edda) // Light green for updates
         : Colors.white;

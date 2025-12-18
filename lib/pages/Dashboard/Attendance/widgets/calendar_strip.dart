@@ -3,6 +3,7 @@ import 'date_card.dart';
 
 class CalendarStrip extends StatelessWidget {
   final DateTime selectedDate;
+  final DateTime displayMonth;
   final ValueChanged<DateTime> onDateSelected;
   final ScrollController scrollController;
   final VoidCallback onFullCalendarPressed;
@@ -10,19 +11,29 @@ class CalendarStrip extends StatelessWidget {
   const CalendarStrip({
     super.key,
     required this.selectedDate,
+    required this.displayMonth,
     required this.onDateSelected,
     required this.scrollController,
     required this.onFullCalendarPressed,
   });
 
+  /// Generate dates for the selected month with proper day alignment
   List<DateTime> _generateCalendarDates() {
-    final now = DateTime.now();
-    final firstDay = DateTime(now.year, now.month, 1);
-    final lastDay = DateTime(now.year, now.month + 1, 0);
+    final year = displayMonth.year;
+    final month = displayMonth.month;
+    
+    // First day of the selected month
+    final firstDay = DateTime(year, month, 1);
+    // Last day of the selected month
+    final lastDay = DateTime(year, month + 1, 0);
+    
     List<DateTime> dates = [];
-    for (int i = 0; i < lastDay.day; i++) {
-      dates.add(firstDay.add(Duration(days: i)));
+    
+    // Add dates from the current month only
+    for (int i = 1; i <= lastDay.day; i++) {
+      dates.add(DateTime(year, month, i));
     }
+    
     return dates;
   }
 
