@@ -48,7 +48,7 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
   // Get labor summary counts
   Map<String, int> _getLaborCounts(List<dynamic> labors) {
     final total = labors.length;
-    final assigned = labors.where((l) => l.siteName != null && l.siteName.isNotEmpty).length;
+    final assigned = labors.where((l) => l.siteName != null && l.siteName.isNotEmpty && l.siteName != 'Unassigned').length;
     final unassigned = total - assigned;
     
     return {
