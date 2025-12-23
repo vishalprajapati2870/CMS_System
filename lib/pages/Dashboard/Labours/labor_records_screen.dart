@@ -1,7 +1,9 @@
 import 'package:cms/pages/Dashboard/Labours/add_labor_screen.dart';
+import 'package:cms/pages/Dashboard/Labours/assign_labor_to_site_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cms/globals/labor_service.dart';
+import 'package:cms/globals/site_service.dart';
 import 'package:nowa_runtime/nowa_runtime.dart';
 import 'package:intl/intl.dart';
 
@@ -41,6 +43,24 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
       _selectedLaborIds.clear();
       _isSelectionMode = false;
     });
+  }
+
+  // Get labor summary counts
+  Map<String, int> _getLaborCounts(List<dynamic> labors) {
+    final total = labors.length;
+    final assigned = labors.where((l) => l.siteName != null && l.siteName.isNotEmpty).length;
+    final unassigned = total - assigned;
+    
+    return {
+      'total': total,
+      'assigned': assigned,
+      'unassigned': unassigned,
+    };
+  }
+
+  // Check if labor is already assigned
+  bool _isLaborAssigned(String siteName) {
+    return siteName != null && siteName.isNotEmpty && siteName != 'Unassigned';
   }
 
   Future<void> _handleDelete(BuildContext context) async {
@@ -167,180 +187,388 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
             }
           },
         ),
-        title: _isSelectionMode
-            ? Text('${_selectedLaborIds.length} Selected')
-            : const Text('Labors'),
-        actions: [
-          if (_isSelectionMode)
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _handleDelete(context),
-            ),
-        ],
+        title: const Text('Add Labour to Site'),
+        centerTitle: false,
       ),
-      body: Consumer<LaborService>(
-        builder: (context, laborService, child) {
+      body: Consumer2<LaborService, SiteService>(
+        builder: (context, laborService, siteService, child) {
           final labors = laborService.labors;
+          final counts = _getLaborCounts(labors);
 
           if (laborService.isLoading && labors.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (labors.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 80,
-                    color: const Color(0xff607286).withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No labors added yet',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: const Color(0xff607286),
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap the + button to add your first labor',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xff607286).withValues(alpha: 0.7),
-                        ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: labors.length,
-            itemBuilder: (context, index) {
-              final labor = labors[index];
-              final isSelected = _selectedLaborIds.contains(labor.id);
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
+          return Column(
+            children: [
+              // Dashboard Summary Section
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: isSelected
-                      ? Border.all(color: const Color(0xff093e86), width: 2)
-                      : null,
+                  color: const Color(0xff093e86),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: InkWell(
-                  onTap: _isSelectionMode
-                      ? () => _toggleSelection(labor.id)
-                      : null,
-                  onLongPress: () => _enterSelectionMode(labor.id),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
                       children: [
-                        if (_isSelectionMode)
-                          Container(
-                            width: 24,
-                            height: 24,
-                            margin: const EdgeInsets.only(right: 12),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xff093e86)
-                                    : const Color(0xffc4c4c4),
-                                width: 2,
-                              ),
-                              color: isSelected
-                                  ? const Color(0xff093e86)
-                                  : Colors.transparent,
-                            ),
-                            child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: 16,
-                                  )
-                                : null,
-                          ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                labor.laborName,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      color: const Color(0xff0a2342),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                labor.work,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: const Color(0xff607286),
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                labor.siteName,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: const Color(0xff607286),
-                                    ),
-                              ),
-                            ],
+                        Text(
+                          '${counts['total']}',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _formatCurrency(labor.salary),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                color: const Color(0xff093e86),
-                                fontWeight: FontWeight.bold,
-                              ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'TOTAL',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                            letterSpacing: 1,
+                          ),
                         ),
                       ],
                     ),
-                  ),
+                    Container(
+                      height: 50,
+                      width: 1,
+                      color: Colors.white30,
+                    ),
+                    Column(
+                      children: [
+                        Text(
+                          '${counts['assigned']}',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'ASSIGNED',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      height: 50,
+                      width: 1,
+                      color: Colors.white30,
+                    ),
+                    Column(
+                      children: [
+                        Text(
+                          '${counts['unassigned']}',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'UNASSIGNED',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              );
-            },
+              ),
+
+              // Labour List
+              Expanded(
+                child: labors.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.people_outline,
+                              size: 80,
+                              color: const Color(0xff607286)
+                                  .withValues(alpha: 0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No labours added yet',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: const Color(0xff607286),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        itemCount: labors.length,
+                        itemBuilder: (context, index) {
+                          final labor = labors[index];
+                          final isSelected =
+                              _selectedLaborIds.contains(labor.id);
+                          final isAssigned =
+                              _isLaborAssigned(labor.siteName);
+
+                          return GestureDetector(
+                            onTap: isAssigned
+                                ? null
+                                : () => _toggleSelection(labor.id),
+                            onLongPress: isAssigned
+                                ? null
+                                : () => _enterSelectionMode(labor.id),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isAssigned
+                                    ? const Color(0xfff0f0f0)
+                                    : isSelected
+                                        ? const Color(0xffe8f5e9)
+                                        : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: isAssigned
+                                    ? Border.all(
+                                        color: const Color(0xffe0e0e0),
+                                      )
+                                    : isSelected
+                                        ? Border.all(
+                                            color:
+                                                const Color(0xff4caf50),
+                                            width: 2,
+                                          )
+                                        : null,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(
+                                      alpha: 0.05,
+                                    ),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  // Checkbox
+                                  if (!isAssigned) ...[
+                                    Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: isSelected
+                                            ? null
+                                            : Border.all(
+                                                color: const Color(
+                                                  0xffc4c4c4,
+                                                ),
+                                                width: 2,
+                                              ),
+                                        color: isSelected
+                                            ? const Color(0xff4caf50)
+                                            : Colors.transparent,
+                                      ),
+                                      child: isSelected
+                                          ? const Icon(
+                                              Icons.check,
+                                              color: Colors.white,
+                                              size: 16,
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ] else ...[
+                                    Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xffc4c4c4),
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ],
+                                  // Labour Details
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          labor.laborName,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: isAssigned
+                                                ? const Color(0xffb0b0b0)
+                                                : const Color(0xff0a2342),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          labor.work,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: isAssigned
+                                                ? const Color(0xffc0c0c0)
+                                                : const Color(0xff607286),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          labor.siteName,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isAssigned
+                                                ? const Color(0xffc0c0c0)
+                                                : const Color(0xff607286),
+                                          ),
+                                        ),
+                                        if (isAssigned)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 6,
+                                            ),
+                                            child: Text(
+                                              'Already Assigned to ${labor.siteName}',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Color(0xffb0b0b0),
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Salary
+                                  Text(
+                                    _formatCurrency(labor.salary),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: isAssigned
+                                          ? const Color(0xffb0b0b0)
+                                          : const Color(0xff093e86),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+
+              // Bottom Action Buttons
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Assign to Site Button
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _selectedLaborIds.isEmpty
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        AssignLaborToSiteScreen(
+                                      selectedLaborIds:
+                                          _selectedLaborIds.toList(),
+                                      labors: labors
+                                          .where((l) => _selectedLaborIds
+                                              .contains(l.id))
+                                          .toList(),
+                                    ),
+                                  ),
+                                ).then((_) {
+                                  _clearSelection();
+                                });
+                              },
+                        icon: const Icon(Icons.assignment),
+                        label: const Text('Assign to Site'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              _selectedLaborIds.isEmpty
+                                  ? Colors.grey
+                                  : const Color(0xff093e86),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Add New Labor Button
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AddLaborScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.person_add),
+                        label: const Text('Add New Labor'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xff093e86),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: const BorderSide(
+                              color: Color(0xff093e86),
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddLaborScreen(),
-            ),
-          );
-        },
-        backgroundColor: const Color(0xff093e86),
-        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

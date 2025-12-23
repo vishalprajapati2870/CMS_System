@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cms/globals/labor_service.dart';
 import 'package:cms/globals/auth_service.dart';
-import 'package:cms/globals/site_service.dart';
 import 'package:nowa_runtime/nowa_runtime.dart';
 
 @NowaGenerated()
@@ -19,7 +18,6 @@ class _AddLaborScreenState extends State<AddLaborScreen> {
   final _laborNameController = TextEditingController();
   final _workController = TextEditingController();
   final _salaryController = TextEditingController();
-  String? _selectedSiteName;
   bool _isLoading = false;
 
   @override
@@ -31,11 +29,6 @@ class _AddLaborScreenState extends State<AddLaborScreen> {
   }
 
   bool _validateInputs() {
-    if (_selectedSiteName == null || _selectedSiteName!.isEmpty) {
-      _showErrorSnackBar('Please select a site');
-      return false;
-    }
-
     final laborName = _laborNameController.text.trim();
     if (laborName.isEmpty) {
       _showErrorSnackBar('Labor name is required');
@@ -88,24 +81,13 @@ class _AddLaborScreenState extends State<AddLaborScreen> {
       _isLoading = true;
     });
 
-    final authService = context.read<AuthService>();
     final laborService = context.read<LaborService>();
-    final currentUser = authService.currentUser;
 
-    if (currentUser == null) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        _showErrorSnackBar('User not found. Please login again.');
-      }
-      return;
-    }
-
+    // Create labor without site assignment (unassigned by default)
     final success = await laborService.createLabor(
       laborName: _laborNameController.text.trim(),
       work: _workController.text.trim(),
-      siteName: _selectedSiteName!,
+      siteName: 'Unassigned', // Default unassigned
       salary: double.parse(_salaryController.text.trim()),
     );
 
@@ -165,113 +147,6 @@ class _AddLaborScreenState extends State<AddLaborScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Site Name Dropdown
-              Text(
-                'Select Site Name',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xff0a2342),
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              Consumer<SiteService>(
-                builder: (context, siteService, child) {
-                  final sites = siteService.sites;
-
-                  if (sites.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xffe0e0e0)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: const Color(0xff607286),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'No sites available. Please add a site first.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: const Color(0xff607286),
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedSiteName,
-                      hint: Text(
-                        'e.g., Downtown Tower Project',
-                        style: TextStyle(
-                          color: const Color(0xffa0a0a0),
-                          fontSize: 16,
-                        ),
-                      ),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                      ),
-                      icon: const Icon(
-                        Icons.arrow_drop_down,
-                        color: Color(0xff093e86),
-                      ),
-                      dropdownColor: Colors.white,
-                      items: sites.map((site) {
-                        return DropdownMenuItem<String>(
-                          value: site.siteName,
-                          child: Text(
-                            site.siteName,
-                            style: const TextStyle(
-                              color: Color(0xff0a2342),
-                              fontSize: 16,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSiteName = value;
-                        });
-                      },
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 24),
-
               // Labor Name
               Text(
                 'Labor Name',
@@ -414,7 +289,7 @@ class _AddLaborScreenState extends State<AddLaborScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                ),
+                  ),
               ),
             ],
           ),

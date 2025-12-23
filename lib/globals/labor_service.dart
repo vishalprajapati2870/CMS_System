@@ -67,6 +67,30 @@ class LaborService extends ChangeNotifier {
     }
   }
 
+  /// Assign a labor to a site
+  Future<bool> assignLaborToSite({
+    required String laborId,
+    required String siteName,
+  }) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      await _firestore.collection('labors').doc(laborId).update({
+        'siteName': siteName,
+      });
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      debugPrint('Error assigning labor to site: $e');
+      return false;
+    }
+  }
+
   Future<bool> deleteLabors(List<String> laborIds) async {
     try {
       _isLoading = true;
