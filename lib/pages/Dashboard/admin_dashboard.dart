@@ -1,6 +1,7 @@
 import 'package:cms/pages/Dashboard/Attendance/daily_attendance_screen.dart';
 import 'package:cms/pages/Dashboard/Sites/site_records_screen.dart';
 import 'package:cms/pages/Dashboard/Labours/labor_records_screen.dart';
+import 'package:cms/pages/Dashboard/Salary/site_wise_salary_filter_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:nowa_runtime/nowa_runtime.dart';
 import 'package:provider/provider.dart';
@@ -537,13 +538,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       ),
                       _buildDashboardCard(
                         context,
-                        icon: Icons.receipt_long,
-                        title: 'Site-wise Expense',
-                        subtitle: 'Record extra site expenses',
+                        icon: Icons.monetization_on,
+                        title: 'Site-Wise Salary',
+                        subtitle: 'View site-wise salary reports',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Expense feature coming soon')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SiteWiseSalaryFilterScreen(),
+                            ),
                           );
                         },
                       ),
