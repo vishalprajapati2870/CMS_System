@@ -45,4 +45,23 @@ class SiteModel {
       createdAt: createdAt ?? this.createdAt,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+  
+    return other is SiteModel &&
+      other.id == id &&
+      other.siteName == siteName &&
+      other.createdBy == createdBy &&
+      other.createdAt == createdAt;
+  }
+
+  @override
+  int get hashCode {
+    return id.hashCode ^
+      siteName.hashCode ^
+      createdBy.hashCode ^
+      createdAt.hashCode;
+  }
 }
