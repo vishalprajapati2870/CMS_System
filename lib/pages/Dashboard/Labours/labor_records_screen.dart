@@ -21,6 +21,7 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
   final Set<String> _selectedLaborIds = {};
   final Set<String> _hiddenLaborIds = {};
   bool _isSelectionMode = false;
+  String _selectedFilter = 'Total'; // 'Total', 'Assigned', 'Unassigned'
 
   void _toggleSelection(String laborId) {
     setState(() {
@@ -244,10 +245,19 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
           builder: (context, laborService, siteService, child) {
             final allLabors = laborService.labors;
             // Filter out locally deleted labors
-            final labors = allLabors
+            final baseLabors = allLabors
                 .where((l) => !_hiddenLaborIds.contains(l.id))
                 .toList();
-            final counts = _getLaborCounts(labors);
+            final counts = _getLaborCounts(baseLabors);
+
+            // Filter based on selection
+            final labors = baseLabors.where((l) {
+              if (_selectedFilter == 'Total') return true;
+              final isAssigned = _isLaborAssigned(l.siteName);
+              if (_selectedFilter == 'Assigned') return isAssigned;
+              if (_selectedFilter == 'Unassigned') return !isAssigned;
+              return true;
+            }).toList();
 
             if (laborService.isLoading && labors.isEmpty) {
               return const Center(child: CircularProgressIndicator());
@@ -255,6 +265,7 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
 
             return Column(
               children: [
+                // Dashboard Summary Section
                 // Dashboard Summary Section
                 Container(
                   margin: const EdgeInsets.all(16),
@@ -273,78 +284,133 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      Column(
-                        children: [
-                          Text(
-                            '${counts['total']}',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      // Total
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedFilter = 'Total'),
+                        child: Column(
+                          children: [
+                            Text(
+                              '${counts['total']}',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedFilter == 'Total'
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.6),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'TOTAL',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
-                              letterSpacing: 1,
+                            const SizedBox(height: 4),
+                            Text(
+                              'TOTAL',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _selectedFilter == 'Total'
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.6),
+                                letterSpacing: 1,
+                                fontWeight: _selectedFilter == 'Total'
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
                             ),
-                          ),
-                        ],
+                            if (_selectedFilter == 'Total')
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                height: 2,
+                                width: 20,
+                                color: Colors.white,
+                              ),
+                          ],
+                        ),
                       ),
                       Container(
                         height: 50,
                         width: 1,
                         color: Colors.white30,
                       ),
-                      Column(
-                        children: [
-                          Text(
-                            '${counts['assigned']}',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      // Assigned
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedFilter = 'Assigned'),
+                        child: Column(
+                          children: [
+                            Text(
+                              '${counts['assigned']}',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedFilter == 'Assigned'
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.6),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'ASSIGNED',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
-                              letterSpacing: 1,
+                            const SizedBox(height: 4),
+                            Text(
+                              'ASSIGNED',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _selectedFilter == 'Assigned'
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.6),
+                                letterSpacing: 1,
+                                fontWeight: _selectedFilter == 'Assigned'
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
                             ),
-                          ),
-                        ],
+                            if (_selectedFilter == 'Assigned')
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                height: 2,
+                                width: 20,
+                                color: Colors.white,
+                              ),
+                          ],
+                        ),
                       ),
                       Container(
                         height: 50,
                         width: 1,
                         color: Colors.white30,
                       ),
-                      Column(
-                        children: [
-                          Text(
-                            '${counts['unassigned']}',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                      // Unassigned
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _selectedFilter = 'Unassigned'),
+                        child: Column(
+                          children: [
+                            Text(
+                              '${counts['unassigned']}',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedFilter == 'Unassigned'
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.6),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'UNASSIGNED',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
-                              letterSpacing: 1,
+                            const SizedBox(height: 4),
+                            Text(
+                              'UNASSIGNED',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _selectedFilter == 'Unassigned'
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.6),
+                                letterSpacing: 1,
+                                fontWeight: _selectedFilter == 'Unassigned'
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
                             ),
-                          ),
-                        ],
+                            if (_selectedFilter == 'Unassigned')
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                height: 2,
+                                width: 20,
+                                color: Colors.white,
+                              ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
