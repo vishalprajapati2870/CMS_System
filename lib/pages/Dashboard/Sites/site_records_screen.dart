@@ -141,8 +141,26 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
     }
   }
 
+  ({Color color, IconData icon}) _getSiteStyle(String siteName) {
+    // Normalize string for checking
+    final name = siteName.toLowerCase();
+    
+    if (name.contains('mall') || name.contains('store') || name.contains('shop')) {
+      return (color: const Color(0xff2979ff), icon: Icons.store); // Blue
+    } else if (name.contains('complex') || name.contains('apartment') || name.contains('tower') || name.contains('building')) {
+      return (color: const Color(0xff7b1fa2), icon: Icons.apartment); // Purple
+    } else if (name.contains('farm') || name.contains('house') || name.contains('villa')) {
+      return (color: const Color(0xffff9100), icon: Icons.grid_view_rounded); // Orange (using grid view as generic structure/farm plot look)
+    } else if (name.contains('railway') || name.contains('train') || name.contains('station')) {
+      return (color: const Color(0xff00c853), icon: Icons.train); // Green
+    } else {
+      // Default
+      return (color: const Color(0xff2979ff), icon: Icons.business);
+    }
+  }
+
   String _formatDateTime(DateTime dateTime) {
-    return DateFormat('MMM dd, yyyy, hh:mm a').format(dateTime);
+    return DateFormat('MMM dd, hh:mm a').format(dateTime);
   }
 
   @override
@@ -164,7 +182,11 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
         ),
         title: _isSelectionMode
             ? Text('${_selectedSiteIds.length} Selected')
-            : const Text('Site Records'),
+            : const Text(
+                'Site Records',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+        centerTitle: true,
         actions: [
           if (_isSelectionMode)
             IconButton(
@@ -210,114 +232,162 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
             );
           }
 
-          return ListView.builder(
+          return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: sites.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final site = sites[index];
               final isSelected = _selectedSiteIds.contains(site.id);
+              final style = _getSiteStyle(site.siteName);
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: isSelected
-                      ? Border.all(color: const Color(0xff003a78), width: 2)
-                      : null,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: InkWell(
-                  onTap: _isSelectionMode
-                      ? () => _toggleSelection(site.id)
-                      : null,
-                  onLongPress: () => _enterSelectionMode(site.id),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+              return GestureDetector(
+                onTap: _isSelectionMode
+                    ? () => _toggleSelection(site.id)
+                    : null, // No detail page implementation yet, or just selection
+                onLongPress: () => _enterSelectionMode(site.id),
+                child: Container(
+                  height: 90, // Fixed height for consistency
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: isSelected
+                        ? Border.all(color: const Color(0xff003a78), width: 2)
+                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
                     child: Row(
                       children: [
-                        if (_isSelectionMode)
-                          Container(
-                            width: 24,
-                            height: 24,
-                            margin: const EdgeInsets.only(right: 12),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xff003a78)
-                                    : const Color(0xffc4c4c4),
-                                width: 2,
-                              ),
-                              color: isSelected
-                                  ? const Color(0xff003a78)
-                                  : Colors.transparent,
-                            ),
-                            child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: 16,
-                                  )
-                                : null,
-                          ),
+                        // Left Colored Bar
                         Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: const Color(0xffeaf1fb),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.business,
-                            color: Color(0xff003a78),
-                            size: 24,
-                          ),
+                          width: 6,
+                          color: isSelected ? const Color(0xff003a78) : style.color,
                         ),
-                        const SizedBox(width: 12),
+                        
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                site.siteName,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      color: const Color(0xff0a2342),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Created By: ${site.createdBy}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: const Color(0xff607286),
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatDateTime(site.createdAt),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: const Color(0xff607286),
-                                      fontSize: 12,
-                                    ),
-                              ),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            child: Row(
+                              children: [
+                                // Icon Container
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: style.color.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    style.icon,
+                                    color: style.color,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                // Content
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      // Title and Checkbox
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              site.siteName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xff0a2342),
+                                              ),
+                                            ),
+                                          ),
+                                          if (_isSelectionMode)
+                                            Container(
+                                              margin: const EdgeInsets.only(left: 8),
+                                              width: 20,
+                                              height: 20,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: isSelected
+                                                      ? const Color(0xff003a78)
+                                                      : const Color(0xffc4c4c4),
+                                                  width: 2,
+                                                ),
+                                                color: isSelected
+                                                    ? const Color(0xff003a78)
+                                                    : Colors.transparent,
+                                              ),
+                                              child: isSelected
+                                                  ? const Icon(
+                                                      Icons.check,
+                                                      color: Colors.white,
+                                                      size: 14,
+                                                    )
+                                                  : null,
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Creator and Date
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.person,
+                                            size: 14,
+                                            color: const Color(0xff607286),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              'By: ${site.createdBy}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xff607286),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xfff5f5f5),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              _formatDateTime(site.createdAt),
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Color(0xff9e9e9e),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -329,17 +399,22 @@ class _SiteRecordsScreenState extends State<SiteRecordsScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddSiteScreen(),
-            ),
-          );
-        },
-        backgroundColor: const Color(0xff003a78),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: SizedBox(
+        width: 60,
+        height: 60,
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AddSiteScreen(),
+              ),
+            );
+          },
+          backgroundColor: const Color(0xff003a78),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: const Icon(Icons.add, color: Colors.white, size: 32),
+        ),
       ),
     );
   }
