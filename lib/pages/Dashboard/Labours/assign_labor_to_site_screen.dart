@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cms/globals/labor_service.dart';
 import 'package:cms/globals/site_service.dart';
 import 'package:cms/models/labor_model.dart';
+import 'package:cms/components/animated_dropdown.dart';
 import 'package:nowa_runtime/nowa_runtime.dart';
 
 @NowaGenerated()
@@ -219,55 +220,19 @@ class _AssignLaborToSiteScreenState extends State<AssignLaborToSiteScreen> {
                       );
                     }
 
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xffe0e0e0),
-                          width: 1,
-                        ),
-                      ),
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedSiteName,
-                        hint: const Text('Select a site'),
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                        icon: const Icon(
-                          Icons.arrow_drop_down,
-                          color: Color(0xff093e86),
-                        ),
-                        dropdownColor: Colors.white,
-                        items: sites
-                            .map(
-                              (site) => DropdownMenuItem<String>(
-                                value: site.siteName,
-                                child: Text(
-                                  site.siteName,
-                                  style: const TextStyle(
-                                    color: Color(0xff0a2342),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedSiteName = value;
-                          });
-                        },
-                      ),
+                    final siteNames = sites.map((s) => s.siteName).toList();
+
+                    return AnimatedDropdown<String>(
+                      value: _selectedSiteName,
+                      items: siteNames,
+                      hintText: 'Select a site',
+                      enableSearch: true,
+                      itemLabelBuilder: (item) => item,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSiteName = value;
+                        });
+                      },
                     );
                   },
                 ),

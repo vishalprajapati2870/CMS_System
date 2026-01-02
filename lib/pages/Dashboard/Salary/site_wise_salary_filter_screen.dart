@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cms/models/site_model.dart';
+import 'package:cms/components/animated_dropdown.dart';
 import 'package:cms/pages/Dashboard/Salary/site_wise_salary_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -126,39 +127,17 @@ class _SiteWiseSalaryFilterScreenState
                       doc.data() as Map<String, dynamic>);
                 }).toList();
 
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<SiteModel>(
-                      value: _selectedSite,
-                      hint: Row(
-                        children: const [
-                          Icon(Icons.business, color: Color(0xff003a78)),
-                          SizedBox(width: 12),
-                          Text('Select Construction Site'),
-                        ],
-                      ),
-                      isExpanded: true,
-                      icon: const Icon(Icons.show_chart,
-                          color: Color(0xff607286)),
-                      items: sites.map((SiteModel site) {
-                        return DropdownMenuItem<SiteModel>(
-                          value: site,
-                          child: Text(site.siteName),
-                        );
-                      }).toList(),
-                      onChanged: (SiteModel? newValue) {
-                        setState(() {
-                          _selectedSite = newValue;
-                        });
-                      },
-                    ),
-                  ),
+                return AnimatedDropdown<SiteModel>(
+                  value: _selectedSite,
+                  items: sites,
+                  hintText: 'Select Construction Site',
+                  enableSearch: true,
+                  itemLabelBuilder: (site) => site.siteName,
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedSite = newValue;
+                    });
+                  },
                 );
               },
             ),

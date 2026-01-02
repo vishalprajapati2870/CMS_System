@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cms/pages/Dashboard/Attendance/service/attendance_service.dart';
+import 'package:cms/components/animated_dropdown.dart';
 
 class ExpandedLaborForm extends StatefulWidget {
   final TextEditingController withdrawController;
@@ -139,22 +140,12 @@ class _ExpandedLaborFormState extends State<ExpandedLaborForm> {
             ),
           ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
+          AnimatedDropdown<String>(
             value: widget.paymentMode,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: const Color(0xfff5f5f5),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            items: ['GPay/UPI', 'Cash', 'PhonePe', 'Paytm', 'BHIM', 'Cheque', 'Other']
-                .map((mode) => DropdownMenuItem(value: mode, child: Text(mode)))
-                .toList(),
+            items: const ['GPay/UPI', 'Cash', 'PhonePe', 'Paytm', 'BHIM', 'Cheque', 'Other'],
+            itemLabelBuilder: (item) => item,
             onChanged: widget.onPaymentModeChanged,
+            hintText: 'Select Payment Mode',
           ),
           const SizedBox(height: 16),
           // Admin Name Dropdown (NEW)
@@ -228,29 +219,13 @@ class _ExpandedLaborFormState extends State<ExpandedLaborForm> {
                 );
               }
 
-              return DropdownButtonFormField<String>(
-                // initialValue: widget.selectedAdminName != null &&
-                //         admins.contains(widget.selectedAdminName)
-                //     ? widget.selectedAdminName
-                //     : null,
-                hint: const Text('Select an admin'),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xfff5f5f5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                ),
-                items: admins
-                    .map((admin) =>
-                        DropdownMenuItem(value: admin, child: Text(admin)))
-                    .toList(),
+              return AnimatedDropdown<String>(
+                value: widget.selectedAdminName,
+                items: admins,
+                itemLabelBuilder: (item) => item,
                 onChanged: widget.onAdminNameChanged,
+                hintText: 'Select an admin',
+                enableSearch: true,
               );
             },
           ),
@@ -271,29 +246,12 @@ class _ExpandedLaborFormState extends State<ExpandedLaborForm> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
+                    AnimatedDropdown<String>(
                       value: widget.dayShift,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: const Color(0xfff5f5f5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      items: ['None', 'Full Day', 'Half Day', 'Semi-Half Day']
-                          .map((shift) => DropdownMenuItem(
-                              value: shift,
-                              child: Text(
-                                shift,
-                                style: const TextStyle(fontSize: 13),
-                              )))
-                          .toList(),
+                      items: const ['None', 'Full Day', 'Half Day', 'Semi-Half Day'],
+                      itemLabelBuilder: (item) => item,
                       onChanged: widget.onDayShiftChanged,
+                      hintText: 'None',
                     ),
                   ],
                 ),
@@ -312,29 +270,12 @@ class _ExpandedLaborFormState extends State<ExpandedLaborForm> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
+                    AnimatedDropdown<String>(
                       value: widget.nightShift,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: const Color(0xfff5f5f5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                      ),
-                      items: ['None', 'Full Night', 'Half Night', 'Semi-Half Night']
-                          .map((shift) => DropdownMenuItem(
-                              value: shift,
-                              child: Text(
-                                shift,
-                                style: const TextStyle(fontSize: 13),
-                              )))
-                          .toList(),
+                      items: const ['None', 'Full Night', 'Half Night', 'Semi-Half Night'],
+                      itemLabelBuilder: (item) => item,
                       onChanged: widget.onNightShiftChanged,
+                      hintText: 'None',
                     ),
                   ],
                 ),
