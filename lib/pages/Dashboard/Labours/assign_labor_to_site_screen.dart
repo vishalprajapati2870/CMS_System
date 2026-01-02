@@ -226,7 +226,6 @@ class _AssignLaborToSiteScreenState extends State<AssignLaborToSiteScreen> {
                       value: _selectedSiteName,
                       items: siteNames,
                       hintText: 'Select a site',
-                      enableSearch: true,
                       itemLabelBuilder: (item) => item,
                       onChanged: (value) {
                         setState(() {

@@ -131,7 +131,6 @@ class _SiteWiseSalaryFilterScreenState
                   value: _selectedSite,
                   items: sites,
                   hintText: 'Select Construction Site',
-                  enableSearch: true,
                   itemLabelBuilder: (site) => site.siteName,
                   onChanged: (newValue) {
                     setState(() {

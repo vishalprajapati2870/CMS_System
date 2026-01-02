@@ -225,7 +225,6 @@ class _AssignLaborDialogState extends State<AssignLaborDialog> {
                   value: _selectedSiteName,
                   items: siteNames,
                   hintText: 'Select a site',
-                  enableSearch: true,
                   itemLabelBuilder: (item) => item,
                   onChanged: (value) {
                     setState(() {

@@ -225,7 +225,7 @@ class _ExpandedLaborFormState extends State<ExpandedLaborForm> {
                 itemLabelBuilder: (item) => item,
                 onChanged: widget.onAdminNameChanged,
                 hintText: 'Select an admin',
-                enableSearch: true,
+                // enableSearch: false, // Default is false, removing explicit true
               );
             },
           ),

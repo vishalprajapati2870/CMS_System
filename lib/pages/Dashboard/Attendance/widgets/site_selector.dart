@@ -27,7 +27,7 @@ class SiteSelector extends StatelessWidget {
             value: selectedSite,
             items: allSites,
             hintText: 'Select Site',
-            enableSearch: true,
+            // enableSearch: false,
             itemLabelBuilder: (item) => item,
             onChanged: onSiteChanged,
           );
