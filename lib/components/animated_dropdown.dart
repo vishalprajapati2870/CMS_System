@@ -33,6 +33,7 @@ class _AnimatedDropdownState<T> extends State<AnimatedDropdown<T>>
   late Animation<double> _expandAnimation;
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
+  bool _isDisposed = false;
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
   List<T> _filteredItems = [];
@@ -61,6 +62,11 @@ class _AnimatedDropdownState<T> extends State<AnimatedDropdown<T>>
 
   @override
   void dispose() {
+    _isDisposed = true;
+    if (_overlayEntry != null && _overlayEntry!.mounted) {
+      _overlayEntry!.remove();
+      _overlayEntry = null;
+    }
     _animationController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -78,7 +84,9 @@ class _AnimatedDropdownState<T> extends State<AnimatedDropdown<T>>
   void _openDropdown() {
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
-    _animationController.forward();
+    if (!_isDisposed) {
+      _animationController.forward();
+    }
     setState(() {
       _isOpen = true;
       _filteredItems = widget.items;
@@ -94,14 +102,22 @@ class _AnimatedDropdownState<T> extends State<AnimatedDropdown<T>>
   }
 
   void _closeDropdown() {
-    _animationController.reverse().then((_) {
-      _overlayEntry?.remove();
-      _overlayEntry = null;
-      _searchFocusNode.unfocus();
-      setState(() {
-        _isOpen = false;
+    if (!mounted || _isDisposed) return;
+    try {
+      _animationController.reverse().then((_) {
+        if (!mounted || _isDisposed) return;
+        _overlayEntry?.remove();
+        _overlayEntry = null;
+        _searchFocusNode.unfocus();
+        if (mounted) {
+          setState(() {
+            _isOpen = false;
+          });
+        }
       });
-    });
+    } catch (e) {
+      // Ignore animation errors during disposal
+    }
   }
 
   void _filterItems(String query) {
