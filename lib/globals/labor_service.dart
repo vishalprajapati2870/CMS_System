@@ -117,6 +117,31 @@ class LaborService extends ChangeNotifier {
     }
   }
 
+  /// Unassign multiple labors from their sites
+  Future<bool> unassignLabors(List<String> laborIds) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final batch = _firestore.batch();
+      for (final id in laborIds) {
+        batch.update(_firestore.collection('labors').doc(id), {
+          'siteName': 'Unassigned',
+        });
+      }
+      await batch.commit();
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      debugPrint('Error unassigning labors: $e');
+      return false;
+    }
+  }
+
   /// Update labor active status
   Future<bool> updateLaborActiveStatus({
     required String laborId,

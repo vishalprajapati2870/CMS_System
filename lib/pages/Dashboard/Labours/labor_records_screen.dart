@@ -71,6 +71,118 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
     return siteName != null && siteName.isNotEmpty && siteName != 'Unassigned';
   }
 
+  Future<void> _handleUnassign(BuildContext context) async {
+    if (_selectedLaborIds.isEmpty) return;
+
+    // Filter to only include assigned labors
+    final laborService = Provider.of<LaborService>(context, listen: false);
+    final assignedSelected = _selectedLaborIds.where((id) {
+       final labor = laborService.labors.firstWhere((l) => l.id == id, orElse: () => LaborModel(id: '', laborName: '', work: '', siteName: '', salary: 0, createdAt: DateTime.now()));
+       return _isLaborAssigned(labor.siteName);
+    }).toList();
+
+    if (assignedSelected.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No assigned labors selected to unassign'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child:
+                  const Icon(Icons.person_remove_outlined, color: Colors.orange, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Unassign Labours?',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'You are about to unassign ${assignedSelected.length} selected labour(s) from their current sites.',
+          style: const TextStyle(color: Color(0xff607286), fontSize: 16,),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xff607286),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Unassign'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final success = await laborService.unassignLabors(assignedSelected);
+      
+      if (success && context.mounted) {
+         setState(() {
+          _clearSelection();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.white24,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check, color: Colors.white, size: 16),
+                ),
+                const SizedBox(width: 12),
+                const Text('Labours unassigned successfully'),
+              ],
+            ),
+            backgroundColor: const Color(0xff22a340),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleDelete(BuildContext context) async {
     if (_selectedLaborIds.isEmpty) return;
 
@@ -219,7 +331,23 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
           ),
         ),
         actions: [
-          if (_isSelectionMode)
+          if (_isSelectionMode) ...[
+             IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_remove_outlined,
+                  color: Colors.white,
+                ),
+              ),
+              onPressed: _selectedLaborIds.isNotEmpty
+                  ? () => _handleUnassign(context)
+                  : null,
+            ),
             IconButton(
               icon: Container(
                 padding: const EdgeInsets.all(8),
@@ -227,7 +355,7 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
                   color:Colors.grey.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.delete,
                   color: Colors.white,
                 ),
@@ -236,6 +364,7 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
                   ? () => _handleDelete(context)
                   : null,
             ),
+          ]
         ],
         centerTitle: false,
       ),
@@ -483,9 +612,14 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
                                       labors: [labor],
                                       isEdit: true,
                                     );
+                                  } else {
+                                    // Open assignment dialog for unassigned labor
+                                    _showAssignmentDialog(
+                                      laborIds: [labor.id],
+                                      labors: [labor],
+                                      isEdit: false,
+                                    );
                                   }
-                                  // If unassigned and not in selection mode, do nothing on tap
-                                  // (Assignment is done via the button at the bottom)
                                 }
                               },
                               onLongPress: () => _enterSelectionMode(labor.id),
@@ -629,20 +763,7 @@ class _LaborRecordsScreenState extends State<LaborRecordsScreen> {
                                                   : const Color(0xff607286),
                                             ),
                                           ),
-                                          if (isAssigned)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 6,
-                                              ),
-                                              child: Text(
-                                                'Already Assigned to ${labor.siteName}',
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                  color: Color(0xffb0b0b0),
-                                                  fontStyle: FontStyle.italic,
-                                                ),
-                                              ),
-                                            ),
+
                                         ],
                                       ),
                                     ),
