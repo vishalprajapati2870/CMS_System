@@ -194,13 +194,15 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
         await _attendanceService.createOrUpdateAttendance(
           laborId: laborId,
           laborName: laborName,
-          // Site info is now fetched from assignments in the service
           date: _selectedDate,
           dayShift: dayShift,
           nightShift: nightShift,
           newWithdrawAmount: newWithdrawAmount,
           paymentMode: paymentMode,
           adminName: adminName,
+          // Pass override info if available (for previous dates)
+          siteName: data['siteName'], 
+          siteId: data['siteId'],
         );
 
         _showSuccessSnackBar(

@@ -77,29 +77,63 @@ class AttendanceService {
     required int? newWithdrawAmount,
     required String paymentMode,
     required String? adminName,
-    String? siteName, // Optional/Ignored as per new flow
+    String? siteName, // Optional: provided manually for previous dates
+    String? siteId,   // Optional: provided manually for previous dates
   }) async {
     try {
-      // 1. Check Assignments
-      final assignmentQuery = await _firestore
-          .collection('assignments')
-          .where('laborId', isEqualTo: laborId)
-          .where('status', isEqualTo: 'active')
-          .get();
+      String? actualSiteId;
+      String? actualSiteName;
+      DocumentReference? activeAssignmentRef;
 
-      if (assignmentQuery.docs.isEmpty) {
-        throw Exception("Labour is not assigned to any site");
+      // Logic Branching: Manual Override vs Strict Assignment
+      if (siteId != null && siteId.isNotEmpty) {
+        // --- CASE 2: Previous Date / Manual Override ---
+        
+        // 1. Check for active assignment to toggle it
+        final assignmentQuery = await _firestore
+            .collection('assignments')
+            .where('laborId', isEqualTo: laborId)
+            .where('status', isEqualTo: 'active')
+            .get();
+
+        if (assignmentQuery.docs.isNotEmpty) {
+           final activeDoc = assignmentQuery.docs.first;
+           activeAssignmentRef = activeDoc.reference;
+           
+           // Deactivate (Temporarily)
+           await activeAssignmentRef.update({
+             'status': 'inactive',
+             'temp_deactivated_for_attendance': true, // Audit trail
+           });
+        }
+
+        actualSiteId = siteId;
+        actualSiteName = siteName ?? 'Unknown Site';
+
+      } else {
+        // --- CASE 1: Strict / Current Date ---
+        
+        // 1. Check Assignments
+        final assignmentQuery = await _firestore
+            .collection('assignments')
+            .where('laborId', isEqualTo: laborId)
+            .where('status', isEqualTo: 'active')
+            .get();
+
+        if (assignmentQuery.docs.isEmpty) {
+          throw Exception("Labour is not assigned to any site");
+        }
+
+        final assignment = assignmentQuery.docs.first.data();
+        actualSiteId = assignment['siteId'] as String?;
+        actualSiteName = assignment['siteName'] as String?;
+
+        if (actualSiteName == null || actualSiteName.isEmpty) {
+           throw Exception("Invalid assignment: missing site information");
+        }
       }
 
-      final assignment = assignmentQuery.docs.first.data();
-      final assignedSiteId = assignment['siteId'] as String?;
-      final assignedSiteName = assignment['siteName'] as String?;
-
-      if (assignedSiteName == null || assignedSiteName.isEmpty) {
-         throw Exception("Invalid assignment: missing site information");
-      }
-
-      // 2. Prepare Doc ID and Data
+      // 2. Prepare Doc ID and Data (Common Logic)
       final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       final docId = '${dateStr}_$laborId';
       
@@ -122,7 +156,7 @@ class AttendanceService {
 
       final Map<String, dynamic> attendanceData = {
         'laborId': laborId,
-        'laborName': laborName.isEmpty ? assignment['siteName'] : laborName, // Fallback if needed, though laborName is passed
+        'laborName': laborName.isEmpty ? actualSiteName : laborName,
         'date': Timestamp.fromDate(date),
         'dateStr': dateStr,
         'dayShift': dayShift,
@@ -133,16 +167,31 @@ class AttendanceService {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      if (!existingDoc.exists) {
-        // New Record - Set immutable site info from assignment
-        attendanceData['siteId'] = assignedSiteId;
-        attendanceData['siteName'] = assignedSiteName;
-        attendanceData['createdAt'] = FieldValue.serverTimestamp();
+      try {
+        if (!existingDoc.exists) {
+          // New Record - Set site info
+          attendanceData['siteId'] = actualSiteId;
+          attendanceData['siteName'] = actualSiteName;
+          attendanceData['createdAt'] = FieldValue.serverTimestamp();
+          
+          await attendanceRef.set(attendanceData);
+        } else {
+          // Update - Do NOT change site info
+          await attendanceRef.update(attendanceData);
+        }
+      } finally {
+        // 3. Reactivate Assignment (Case 2 cleanup)
+        // Ensure we restore active status even if attendance save fails? 
+        // Or only if it succeeds? 
+        // User said: "After successful attendance saving... assignment status is set back to active"
+        // But if attendance fails, we probably SHOULD restore it anyway to not leave system in broken state.
         
-        await attendanceRef.set(attendanceData);
-      } else {
-        // Update - Do NOT change site info
-        await attendanceRef.update(attendanceData);
+        if (activeAssignmentRef != null) {
+          await activeAssignmentRef.update({
+             'status': 'active',
+             'temp_deactivated_for_attendance': FieldValue.delete(),
+          });
+        }
       }
 
       return true;

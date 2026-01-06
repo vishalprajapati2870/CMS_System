@@ -38,7 +38,7 @@ class AssignmentModel {
     return {
       'laborId': laborId,
       'siteId': siteId,
-      'siteName': siteName,
+      'siteName': siteName, 
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
       'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,

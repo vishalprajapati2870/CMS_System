@@ -88,7 +88,32 @@ class _LaborCardState extends State<LaborCard> {
            widget.siteName.toLowerCase() == 'unassigned';
   }
 
+  // New: Check if we need to show site selector
+  bool _shouldShowSiteSelector() {
+    // Only show if:
+    // 1. It is a past date (not today)
+    // 2. AND no existing attendance record found
+    // 3. AND labor is either unassigned OR we want to allow override even if assigned (User simplified: "if no attendance record exists")
+    // Re-reading request: "Filling Attendance for a Previous Date (No Attendance Exists)... The labour list should show an additional dropdown"
+    
+    final isPastDate = widget.selectedDate.isBefore(DateTime(
+      DateTime.now().year, 
+      DateTime.now().month, 
+      DateTime.now().day
+    ));
+
+    return isPastDate && _existingAttendance == null;
+  }
+
+  String? _selectedSiteForPastDate;
+
   void _showAssignmentRequiredDialog() {
+    // Only block if strictly unassigned AND not allowing past date override
+    // But for past date flow, we allow selecting site manually if no record exists.
+    // So only block if it's TODAY and unassigned.
+    
+    if (_shouldShowSiteSelector()) return; // Don't block, show selector instead
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -177,7 +202,7 @@ class _LaborCardState extends State<LaborCard> {
   }
 
   void _toggleExpansion() {
-    if (_isUnassigned()) {
+    if (_isUnassigned() && !_shouldShowSiteSelector()) {
       _showAssignmentRequiredDialog();
       return;
     }
@@ -187,11 +212,34 @@ class _LaborCardState extends State<LaborCard> {
     });
   }
 
-  void _save() {
+  Future<void> _save() async {
+    // If strict mode (past date), site selection is mandatory
+    if (_shouldShowSiteSelector() && (_selectedSiteForPastDate == null || _selectedSiteForPastDate!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a site for this attendance record')),
+      );
+      return;
+    }
+
+    String? resolvedSiteId;
+    final overrideSiteName = _shouldShowSiteSelector() ? _selectedSiteForPastDate : null;
+
+    if (overrideSiteName != null) {
+       final siteService = context.read<SiteService>();
+       try {
+         final site = siteService.sites.firstWhere((s) => s.siteName == overrideSiteName);
+         resolvedSiteId = site.id;
+       } catch (e) {
+         // Should not happen if data is consistent
+         print('Error finding site ID for name: $overrideSiteName');
+       }
+    }
+
     final data = {
       'laborId': widget.laborId,
       'laborName': widget.laborName,
-      'siteName': widget.siteName,
+      'siteName': overrideSiteName ?? widget.siteName,
+      'siteId': resolvedSiteId, // Pass optional siteId
       'dayShift': _dayShift,
       'nightShift': _nightShift,
       'withdrawAmount': _withdrawController.text.trim().isEmpty
@@ -201,16 +249,35 @@ class _LaborCardState extends State<LaborCard> {
       'adminName': _selectedAdminName,
     };
     
+    // UI Feedback: collapse immediately but DON'T turn green yet
     setState(() {
-      _justUpdated = true;
       _isExpanded = false;
+      _isLoading = true; // Show loading state
     });
 
-    widget.onSave(data);
+    try {
+      // Await the save operation
+      await widget.onSave(data);
 
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _loadExistingAttendance();
-    });
+      // Only update UI to success state AFTER successful save
+      if (mounted) {
+        setState(() {
+          _justUpdated = true;
+          _isLoading = false;
+        });
+        
+        // Refresh data
+        await _loadExistingAttendance();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isExpanded = true; // Re-open on error
+        });
+        // Error handling matches parent's snackbar usually
+      }
+    }
   }
 
   @override
@@ -218,30 +285,26 @@ class _LaborCardState extends State<LaborCard> {
     final isUnassigned = _isUnassigned();
     final isUpdate = _existingAttendance != null || _justUpdated;
     
-    // Determine colors based on status
-    final Color backgroundColor;
-    final Color? borderColor;
-    final Color iconColor;
-    final Color iconBackgroundColor;
+    // Determine colors
+    Color backgroundColor = Colors.white;
+    Color? borderColor;
+    Color iconColor = const Color(0xff003a78);
+    Color iconBackgroundColor = const Color(0xffeaf1fb);
     
-    if (isUnassigned) {
-      // Red theme for unassigned
+    if (isUnassigned && !_shouldShowSiteSelector()) {
       backgroundColor = const Color(0xffffebee);
       borderColor = Colors.red;
       iconColor = Colors.red;
       iconBackgroundColor = const Color(0xffffcdd2);
     } else if (isUpdate) {
-      // Green theme for updated/existing attendance
       backgroundColor = const Color(0xffd4edda);
       borderColor = const Color(0xff21a345);
       iconColor = const Color(0xff21a345);
       iconBackgroundColor = const Color(0xffc8e6c9);
-    } else {
-      // Default white theme
-      backgroundColor = Colors.white;
-      borderColor = null;
-      iconColor = const Color(0xff003a78);
-      iconBackgroundColor = const Color(0xffeaf1fb);
+    } else if (_isLoading && !_isExpanded) {
+       // Saving state
+       backgroundColor = const Color(0xfff5f5f5);
+       borderColor = Colors.grey;
     }
 
     return AnimatedContainer(
@@ -280,11 +343,16 @@ class _LaborCardState extends State<LaborCard> {
                       color: iconBackgroundColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      isUnassigned ? Icons.warning_amber_rounded : Icons.person,
-                      color: iconColor,
-                      size: 24,
-                    ),
+                    child: _isLoading && !_isExpanded
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          (isUnassigned && !_shouldShowSiteSelector()) ? Icons.warning_amber_rounded : Icons.person,
+                          color: iconColor,
+                          size: 24,
+                        ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -301,14 +369,18 @@ class _LaborCardState extends State<LaborCard> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          isUnassigned ? 'Not Assigned' : widget.siteName,
+                          (isUnassigned && !_shouldShowSiteSelector())
+                              ? 'Not Assigned' 
+                              : (_shouldShowSiteSelector() && _selectedSiteForPastDate != null)
+                                  ? 'Site: $_selectedSiteForPastDate'
+                                  : widget.siteName,
                           style: TextStyle(
                             fontSize: 14,
-                            color: isUnassigned ? Colors.red : const Color(0xff607286),
-                            fontWeight: isUnassigned ? FontWeight.w600 : FontWeight.normal,
+                            color: (isUnassigned && !_shouldShowSiteSelector()) ? Colors.red : const Color(0xff607286),
+                            fontWeight: (isUnassigned && !_shouldShowSiteSelector()) ? FontWeight.w600 : FontWeight.normal,
                           ),
                         ),
-                        if (isUnassigned)
+                        if (isUnassigned && !_shouldShowSiteSelector())
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Row(
@@ -331,7 +403,7 @@ class _LaborCardState extends State<LaborCard> {
                               ],
                             ),
                           ),
-                        if (isUpdate && !isUnassigned)
+                        if (isUpdate && !(isUnassigned && !_shouldShowSiteSelector()))
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Row(
@@ -364,25 +436,70 @@ class _LaborCardState extends State<LaborCard> {
               ),
             ),
           ),
-          if (_isExpanded && !isUnassigned)
-            ExpandedLaborForm(
-              withdrawController: _withdrawController,
-              paymentMode: _paymentMode,
-              dayShift: _dayShift,
-              nightShift: _nightShift,
-              selectedAdminName: _selectedAdminName,
-              existingWithdrawalAmount:
-                  _existingAttendance?['withdrawAmount'] as int?,
-              onPaymentModeChanged: (value) =>
-                  setState(() => _paymentMode = value ?? _paymentMode),
-              onDayShiftChanged: (value) =>
-                  setState(() => _dayShift = value ?? _dayShift),
-              onNightShiftChanged: (value) =>
-                  setState(() => _nightShift = value ?? _nightShift),
-              onAdminNameChanged: (value) =>
-                  setState(() => _selectedAdminName = value),
-              onSave: _save,
-            ),
+          if (_isExpanded) ...[
+             // Site Selector for Past Dates
+             if (_shouldShowSiteSelector())
+               Padding(
+                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     const Text(
+                       'SELECT SITE (Past Date Override)',
+                       style: TextStyle(
+                         fontSize: 12,
+                         fontWeight: FontWeight.bold,
+                         color: Color(0xff607286),
+                         letterSpacing: 0.5,
+                       ),
+                     ),
+                     const SizedBox(height: 8),
+                     Consumer<SiteService>(
+                        builder: (context, siteService, child) {
+                          final sites = siteService.sites;
+                          // Filter out empty/invalid site names if any
+                          final siteNames = sites.map((s) => s.siteName).where((name) => name.isNotEmpty).toList();
+                          
+                          if (siteNames.isEmpty) {
+                            return const Text('No active sites available', style: TextStyle(color: Colors.red));
+                          }
+                          
+                          return AnimatedDropdown<String>(
+                            value: _selectedSiteForPastDate,
+                            items: siteNames,
+                            hintText: 'Select Site',
+                            itemLabelBuilder: (item) => item,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedSiteForPastDate = value;
+                              });
+                            },
+                          );
+                        },
+                     ),
+                   ],
+                 ),
+               ),
+          
+             ExpandedLaborForm(
+               withdrawController: _withdrawController,
+               paymentMode: _paymentMode,
+               dayShift: _dayShift,
+               nightShift: _nightShift,
+               selectedAdminName: _selectedAdminName,
+               existingWithdrawalAmount:
+                   _existingAttendance?['withdrawAmount'] as int?,
+               onPaymentModeChanged: (value) =>
+                   setState(() => _paymentMode = value ?? _paymentMode),
+               onDayShiftChanged: (value) =>
+                   setState(() => _dayShift = value ?? _dayShift),
+               onNightShiftChanged: (value) =>
+                   setState(() => _nightShift = value ?? _nightShift),
+               onAdminNameChanged: (value) =>
+                   setState(() => _selectedAdminName = value),
+               onSave: _save,
+             ),
+          ]
         ],
       ),
     );
