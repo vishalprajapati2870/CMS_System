@@ -132,6 +132,7 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
     required String? withdrawAmount,
     required String paymentMode,
     required String? adminName,
+    String? siteId, // Add optional siteId
   }) async {
     // Validation
     if (adminName == null || adminName.isEmpty) {
@@ -201,8 +202,8 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
           paymentMode: paymentMode,
           adminName: adminName,
           // Pass override info if available (for previous dates)
-          siteName: data['siteName'], 
-          siteId: data['siteId'],
+          siteName: siteName, 
+          siteId: siteId,
         );
 
         _showSuccessSnackBar(
@@ -389,6 +390,7 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
                         withdrawAmount: data['withdrawAmount'],
                         paymentMode: data['paymentMode'],
                         adminName: data['adminName'],
+                        siteId: data['siteId'],
                       ),
                     );
                   },
