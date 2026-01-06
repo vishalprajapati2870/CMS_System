@@ -372,15 +372,17 @@ class _LaborCardState extends State<LaborCard> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          (isUnassigned && !_shouldShowSiteSelector())
-                              ? 'Not Assigned' 
-                              : (_shouldShowSiteSelector() && _selectedSiteForPastDate != null)
-                                  ? 'Site: $_selectedSiteForPastDate'
-                                  : widget.siteName,
+                          _existingAttendance != null 
+                              ? (_existingAttendance!['siteName'] ?? widget.siteName)
+                              : (isUnassigned && !_shouldShowSiteSelector())
+                                  ? 'Not Assigned' 
+                                  : (_shouldShowSiteSelector() && _selectedSiteForPastDate != null)
+                                      ? 'Site: $_selectedSiteForPastDate'
+                                      : widget.siteName,
                           style: TextStyle(
                             fontSize: 14,
-                            color: (isUnassigned && !_shouldShowSiteSelector()) ? Colors.red : const Color(0xff607286),
-                            fontWeight: (isUnassigned && !_shouldShowSiteSelector()) ? FontWeight.w600 : FontWeight.normal,
+                            color: (isUnassigned && !_shouldShowSiteSelector() && _existingAttendance == null) ? Colors.red : const Color(0xff607286),
+                            fontWeight: (isUnassigned && !_shouldShowSiteSelector() && _existingAttendance == null) ? FontWeight.w600 : FontWeight.normal,
                           ),
                         ),
                         if (isUnassigned && !_shouldShowSiteSelector())
