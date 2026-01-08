@@ -410,6 +410,7 @@ class _DailyAttendanceScreenState extends State<DailyAttendanceScreen> {
                   itemBuilder: (context, index) {
                     final labor = labors[index];
                     return LaborCard(
+                      key: ValueKey(labor.id), // Ensure state separation
                       laborId: labor.id,
                       laborName: labor.laborName,
                       siteName: labor.siteName,

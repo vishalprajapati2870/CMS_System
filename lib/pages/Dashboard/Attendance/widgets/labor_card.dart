@@ -49,7 +49,7 @@ class _LaborCardState extends State<LaborCard> {
   @override
   void didUpdateWidget(LaborCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedDate != widget.selectedDate) {
+    if (oldWidget.selectedDate != widget.selectedDate || oldWidget.laborId != widget.laborId) {
       _justUpdated = false;
       _loadExistingAttendance();
     }
