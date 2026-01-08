@@ -141,16 +141,25 @@ class _AnimatedDropdownState<T> extends State<AnimatedDropdown<T>>
     var size = renderBox.size;
     var offset = renderBox.localToGlobal(Offset.zero);
     
-    // Calculate available space below
-    final double screenHeight = MediaQuery.of(context).size.height;
-    final double spaceBelow = screenHeight - offset.dy - size.height;
+    // Calculate available space
+    final mediaQuery = MediaQuery.of(context);
+    final double screenHeight = mediaQuery.size.height;
+    final double paddingBottom = mediaQuery.padding.bottom;
+    final double viewInsetsBottom = mediaQuery.viewInsets.bottom; // Keyboard height
+    final double paddingTop = mediaQuery.padding.top;
+    
+    final double spaceBelow = screenHeight - (offset.dy + size.height) - paddingBottom - viewInsetsBottom - 10;
+    final double spaceAbove = offset.dy - paddingTop - 10;
+    
+    // Determine if we should show above
+    // Prefer below if enough space (e.g. > 150), otherwise pick larger space
+    bool showAbove = (spaceBelow < 150) && (spaceAbove > spaceBelow);
+
+    // Calculate constrained height
     final double maxDropdownHeight = 300.0;
-    
-    // Determine if we should show above or below based on space
-    // Simple logic: if space below is less than 200 and space above is more, show above?
-    // For now, let's stick to standard "below" unless very tight, 
-    // but standard CompositedTransformFollower handles positioning relative to link.
-    
+    final double availableHeight = showAbove ? spaceAbove : spaceBelow;
+    final double constrainedHeight = availableHeight < maxDropdownHeight ? availableHeight : maxDropdownHeight;
+
     return OverlayEntry(
       builder: (context) => Stack(
         children: [
@@ -167,16 +176,21 @@ class _AnimatedDropdownState<T> extends State<AnimatedDropdown<T>>
             child: CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
-              offset: Offset(0.0, size.height + 5.0),
+              // Adjust anchors based on direction
+              targetAnchor: showAbove ? Alignment.topLeft : Alignment.bottomLeft,
+              followerAnchor: showAbove ? Alignment.bottomLeft : Alignment.topLeft,
+              offset: showAbove 
+                  ? const Offset(0, -5.0)  // 5px margin above
+                  : const Offset(0, 5.0),  // 5px margin below
               child: Material(
                 elevation: 4,
                 borderRadius: BorderRadius.circular(12),
                 color: Colors.white,
                 child: SizeTransition(
-                  axisAlignment: 1.0,
+                  axisAlignment: showAbove ? 1.0 : -1.0, // 1.0 grows from bottom, -1.0 from top
                   sizeFactor: _expandAnimation,
                   child: Container(
-                    constraints: BoxConstraints(maxHeight: maxDropdownHeight),
+                    constraints: BoxConstraints(maxHeight: constrainedHeight),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       color: Colors.white,
